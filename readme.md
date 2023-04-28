@@ -1,5 +1,7 @@
 # listjsfunctions command line tool 
 
+![Preview](preview.png)
+
 List JS Functions is a command-line tool to quickly find and list all JavaScript functions in a specified directory. This tool is handy for developers who want to analyze the code structure and gain an overview of the functions in their projects. It supports various options such as recursive search, ignoring files listed in `.gitignore`, and copying the output to the clipboard.
 
 ## Features
