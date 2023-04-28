@@ -13,10 +13,30 @@ List JS Functions is a command-line tool to quickly find and list all JavaScript
 
 ## Installation
 
-To install List JS Functions globally, run:
+To install List JS Functions from the GitHub repository, follow these steps:
+
+1. Clone the repository to your local machine:
 
 ```bash
-npm install -g list-js-functions
+git clone https://github.com/franzenzenhofer/listjsfunctions.git
+```
+
+2. Navigate to the `listjsfunctions` directory:
+
+```bash
+cd listjsfunctions
+```
+
+3. Install the dependencies:
+
+```bash
+npm install
+```
+
+4. To install List JS Functions globally, run:
+
+```bash
+npm install -g .
 ```
 
 ## Usage
