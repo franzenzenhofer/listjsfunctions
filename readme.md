@@ -1,4 +1,4 @@
-# listjsfunctions command line tool 
+# listfunctions for JS command line tool 
 
 ![Preview](preview.png)
 
