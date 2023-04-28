@@ -7,7 +7,7 @@ import clipboardy from 'clipboardy';
 import chalk from 'chalk';
 import ignore from 'ignore';
 
-const walkJsFiles = (dir, ig) => {
+const walkJsFiles = (dir, ig, recursive) => {
   let results = [];
   const list = fs.readdirSync(dir);
   list.forEach((file) => {
@@ -15,7 +15,9 @@ const walkJsFiles = (dir, ig) => {
     file = path.join(dir, file);
     const stat = fs.statSync(file);
     if (stat && stat.isDirectory()) {
-      results = results.concat(walkJsFiles(file, ig));
+      if (recursive) {
+        results = results.concat(walkJsFiles(file, ig, recursive));
+      }
     } else if (path.extname(file) === '.js' || path.extname(file) === '.mjs') {
       results.push(file);
     }
@@ -27,7 +29,6 @@ const walkJsFiles = (dir, ig) => {
 const extractFunctions = (filePath) => {
   const code = fs.readFileSync(filePath, 'utf8');
   const ast = parse(code, { ecmaVersion: 'latest', sourceType: 'module' });
-
 
   const functions = [];
   const walkNode = (node) => {
@@ -59,6 +60,16 @@ const extractFunctions = (filePath) => {
       }
     }
 
+    // Handling class methods
+    if (node.type === 'ClassDeclaration' || node.type === 'ClassExpression') {
+      node.body.body.forEach((classElement) => {
+        if (classElement.type === 'MethodDefinition') {
+          const methodName = classElement.key.name || classElement.key.value;
+          functions.push(`class method ${methodName}(${classElement.value.params.map(p => p.name).join(', ')})`);
+        }
+      });
+    }
+
     if (node.body) {
       if (Array.isArray(node.body)) {
         node.body.forEach(walkNode);
@@ -73,6 +84,7 @@ const extractFunctions = (filePath) => {
   return functions;
 };
 
+
 const displayHelp = () => {
   console.log(`
 Usage: listjsfunctions [options] [directory]
@@ -80,6 +92,7 @@ Usage: listjsfunctions [options] [directory]
 Options:
   -c, --copy        Copy output to clipboard
   -a, --all         Include files listed in .gitignore
+  -r, --recursive   Search for JavaScript files recursively in subdirectories
   -nc, --nocolor    Disable color coding
   -h, --help        Display this help message and exit
 
@@ -88,9 +101,12 @@ Examples:
   listjsfunctions src            List functions in the src directory
   listjsfunctions -c             List functions and copy output to clipboard
   listjsfunctions -a             List functions including files in .gitignore
+  listjsfunctions -r             List functions in the current directory and its subdirectories
+  listjsfunctions src -r         List functions in the src directory and its subdirectories
 `);
   process.exit(0);
 };
+
 
 const getArguments = () => {
   const args = process.argv.slice(2);
@@ -102,8 +118,9 @@ const getArguments = () => {
   const options = {
     dir: args.find(arg => !arg.startsWith('-')) || '.',
     copyToClipboard: args.includes('-c') || args.includes('--copy'),
-    useGitIgnore: !(args.includes('-a') || args.includes('--all')),
-    noColor: args.includes('-nc') || args.includes('--nocolor')
+    includeIgnored: args.includes('-a') || args.includes('--all'),
+    noColor: args.includes('-nc') || args.includes('--nocolor'),
+    recursive: args.includes('-r') || args.includes('--recursive')
   };
 
   return options;
@@ -131,10 +148,10 @@ const generateOutput = (jsFiles, noColor) => {
 };
 
 const main = () => {
-  const { dir, copyToClipboard, useGitIgnore, noColor } = getArguments();
+  const { dir, copyToClipboard, includeIgnored, noColor, recursive } = getArguments();
 
   let ig;
-  if (useGitIgnore) {
+  if (!includeIgnored) {
     const gitignorePath = path.join(dir, '.gitignore');
     if (fs.existsSync(gitignorePath)) {
       const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
@@ -142,7 +159,7 @@ const main = () => {
     }
   }
 
-  const jsFiles = walkJsFiles(dir, ig);
+  const jsFiles = walkJsFiles(dir, ig, recursive);
   const { colored, plain } = generateOutput(jsFiles, noColor);
   console.log(colored);
 
